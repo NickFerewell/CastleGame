@@ -15,7 +15,7 @@ function preload(){
     //     images[name] = loadImage(path);
     // })
     Object.keys(Config.imagePaths).forEach(function(nameOfImage) {
-        images[nameOfImage] = loadImage(Config.imagePaths[nameOfImage] || Config.imagePaths.__default);
+        images[nameOfImage] = loadImage(Config.imagePaths[nameOfImage]/* || Config.imagePaths.Default*/);
 });
 }
 
