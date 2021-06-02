@@ -7,8 +7,8 @@ class Config{
 
 	static imagePaths = {
 		__default: "images/Default.png",
-		Village: "",
+		//Village: "",
 		Ruins: "images/Ruins.png",
-		Castle: "",
+		//Castle: "",
 	}
 }
