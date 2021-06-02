@@ -143,6 +143,28 @@ class Ruins extends Building{
 	}
 }
 
+class Village extends Building{
+	constructor(position){
+		this.position = position;
+		this.colorPalette = "#c05d00";
+	}
+
+	draw(){
+		//image(images.Village, this.posOnScreen.x, this.posOnScreen.y);
+	}
+}
+
+class Castle extends Building{
+	constructor(position){
+		this.position = position;
+		this.colorPalette = "#674c45";
+	}
+
+	draw(){
+		//image(images.Castle, this.posOnScreen.x, this.posOnScreen.y);
+	}
+}
+
 /*let buildings = {
 	Village,
 	Building
