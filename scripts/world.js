@@ -103,13 +103,13 @@ class World {
 					this.createBuilding("Ruins", building);
 					break;
 				case 1:
-					this.createBuilding("Village", building, Village.getRandomStartPopulation());
+					this.createBuilding("Village", building, TestVillage.getRandomStartPopulation());
 					break;
 				case 2:
 					//На этом месте на карте будет пустое место для сражений, полей, лесов, озёр, гор и т.д.
 					break;
 				case 3:
-					this.createBuilding("Castle", building, Village.getRandomStartPopulation());
+					this.createBuilding("Castle", building, TestVillage.getRandomStartPopulation());
 					break;
 				default:
 					//do nothing
