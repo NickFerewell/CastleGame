@@ -1013,4 +1013,38 @@ class Utilities{
             roman = (key[+digits.pop() + (i * 10)] || "") + roman;
         return Array(+digits.join("") + 1).join("M") + roman;
     }
+
+    /*static getNeighbours(array, x, y){
+        var res = [];
+        if(array[x, y-1]){
+            res.push(array[x, y-1]);
+        }
+    }*/
+
+    //Прикольная функция из github.com/tillarnold/fixed-2d-array/blob/master/lib/fixed-2d-array.js
+    static getNeighbours(array, row, col, distance) {
+        //this.validateCoords(row, col);
+
+        if (typeof distance === 'undefined') { distance = 1; }
+        if (distance <= 0) {
+            return [];
+        }
+
+        var returnArray = [];
+
+        for (var i = row - distance; i <= row + Number(distance); i++) {
+            for (var j = col - distance; j <= col + Number(distance); j++) {
+                try {
+                    if (!(i === row && j === col)) {
+                        var element = array[i][j];
+                        returnArray.push(element);
+                    }
+                } catch (e) {
+                    //this is a field at the edge of the grid.
+                    //ignore
+                }
+            }
+        }
+        return returnArray;
+    };
 }

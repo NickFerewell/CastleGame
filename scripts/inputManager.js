@@ -13,6 +13,49 @@ class inputManager{
         37: "leftArrPressed",
         39: "rightArrPressed"
     }
+    static mouse = {
+        gameWorldPosition: {x: 0, y: 0},
+        chunkPosition: {x: 0, y: 0},
+        chunkPosOnScreen: {x: 0, y: 0},
+        posInChunks: {x: 0, y: 0},
+        interactRadius: 60,
+    }
+
+    static start(){
+        noCursor();
+    }
+    static update(){
+        if(mouseIsPressed || true){
+            inputManager.mouse.gameWorldPosition.x = mouseX + gameWorld.camera.position.x - gameWorld.camera.offset.x;
+            inputManager.mouse.gameWorldPosition.y = mouseY + gameWorld.camera.position.y - gameWorld.camera.offset.y;
+            inputManager.mouse.chunkPosition.x = inputManager.mouse.gameWorldPosition.x - inputManager.mouse.gameWorldPosition.x%gameWorld.chunkSizeWidth;
+            inputManager.mouse.chunkPosition.y = inputManager.mouse.gameWorldPosition.y - inputManager.mouse.gameWorldPosition.y%gameWorld.chunkSizeHeight;
+            inputManager.mouse.posInChunks.x = (inputManager.mouse.gameWorldPosition.x - inputManager.mouse.gameWorldPosition.x%gameWorld.chunkSizeWidth) / gameWorld.chunkSizeWidth;
+            inputManager.mouse.posInChunks.y = (inputManager.mouse.gameWorldPosition.y - inputManager.mouse.gameWorldPosition.y%gameWorld.chunkSizeHeight) / gameWorld.chunkSizeHeight;
+            //circle(inputManager.mouse.chunkPosition.x, inputManager.mouse.chunkPosition.y, 20);
+            inputManager.mouse.chunkPosOnScreen.x = inputManager.mouse.chunkPosition.x - gameWorld.camera.position.x + gameWorld.camera.offset.x;
+            inputManager.mouse.chunkPosOnScreen.y = inputManager.mouse.chunkPosition.y - gameWorld.camera.position.y + gameWorld.camera.offset.y;
+            //rect(inputManager.mouse.chunkPosOnScreen.x, inputManager.mouse.chunkPosOnScreen.y, 20, 20);
+            //circle(inputManager.mouse.chunkPosition.x - gameWorld.camera.position.x + gameWorld.camera.offset.x + gameWorld.chunkSizeWidth/2, inputManager.mouse.chunkPosition.y - gameWorld.camera.position.y + gameWorld.camera.offset.y + gameWorld.chunkSizeHeight/2, 20)
+            //circle((mx - mx%gameWorld.chunkSizeWidth) - gameWorld.camera.position.x + gameWorld.camera.offset.x + gameWorld.chunkSizeWidth/2, (my - my%gameWorld.chunkSizeHeight) - gameWorld.camera.position.y + gameWorld.camera.offset.y + gameWorld.chunkSizeHeight/2, 20)
+        }
+
+        //circle(mouseX, mouseY, 20)
+    }
+
+    static draw(){
+        if(mouseIsPressed){
+            push();
+            fill(90, 120, 90, 60);
+            stroke(100, 100, 230);
+            rect(inputManager.mouse.chunkPosOnScreen.x, inputManager.mouse.chunkPosOnScreen.y, gameWorld.chunkSizeWidth, gameWorld.chunkSizeHeight);
+            pop();
+        }
+        push();
+        fill(200, 200, 100);
+        circle(mouseX, mouseY, 20);
+        pop();
+    }
 }
 
 function mouseWheel(event){
@@ -66,3 +109,10 @@ function keyReleased(){
     inputManager.keyboard[inputManager.bindings[keyCode]] = false;
     return false;
 }
+
+// function mouseClicked(event) {
+//   console.log(event);
+//   console.log(mouseX);
+//   rect(0, mouseX, 100, 100)
+//   image(images.Village, mouseX, mouseY)
+// }

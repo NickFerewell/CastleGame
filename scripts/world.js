@@ -15,10 +15,12 @@ class World {
 			minZoom: 0.2, 
 			maxZoom: 5,
 		};
-		this.seed = 2;
+		this.seed = 2; //7060, 94717, 6831(четыре горы), 9720, 3583
 		this.mapByChunks = [];
 		this.chunkSizeWidth = 30;
 		this.chunkSizeHeight = 30;
+		this.chunkAmountWide = 100;
+		this.chunkAmountHigh = 60;
 	}
 
 	changeCameraZoom(dir, mult = 1){
@@ -39,29 +41,81 @@ class World {
 		randomSeed(gameWorld.seed);
 		noiseSeed(gameWorld.seed);
 
-		for(var i = 0; i < 100; i++){
-			points.push([random(width), random(height)]);
+		console.log(this.chunkSizeWidth*this.chunkAmountWide)
+
+		const cellAndPointsNum = 200; //300, 100, 200 - это количество точек(клеток) на всей карте. А концентрация этих точек это cellAndPointsNum / this.chunkSizeWidth*this.chunkAmountWide. Кол-во точек/количество пикселей. сколько точек в одном пикселе. Идеальная концентрация это 0.06(6) - 200/3000
+		for(var i = 0; i < cellAndPointsNum; i++){
+			points.push([random(this.chunkSizeWidth*this.chunkAmountWide), random(this.chunkSizeHeight*this.chunkAmountHigh)]);
 		}
 		// for (var i = 0; i < 2; i++) {
 		// 	points = this.improveRandomPoints(points);
 		// }
 		this.makeRelaxed(points);
 		const delaunay = d3.Delaunay.from(points);
-		const voronoi = delaunay.voronoi([0, 0, width, height]); //960, 500
+		const voronoi = delaunay.voronoi([0, 0, this.chunkSizeWidth*this.chunkAmountWide, this.chunkSizeHeight*this.chunkAmountHigh]); //960, 500
 		const cellPolygons = voronoi.cellPolygons();
 		for (let cell of cellPolygons) {
 			//cell.color = Utilities.getRandomCSSColor();
 			var cellCentroid = this.findCentroidOfPolygonArrays(cell);
-			cell.color = this.getColorOfHeightMapSmoothHex(noise(cellCentroid[0], cellCentroid[1])); //noise()*2 - 1
-  			this.MapOfRelief.push(cell);
+			var heightOfTheCell = noise(cellCentroid[0], cellCentroid[1])
+			var cellColor = this.getColorOfHeightMapSmoothHex(heightOfTheCell); //noise()*2 - 1
+  			this.MapOfRelief.push({bounds: cell, centroid: {x: cellCentroid[0], y: cellCentroid[1]}, height: heightOfTheCell, color: cellColor});
 		}
-		this.createCastlesAndRuins(delaunay);
+
+		for(var x = 0; x < this.chunkAmountWide; x++){
+			var yCollumn = []
+			for(var y = 0; y < this.chunkAmountHigh; y++){
+				yCollumn.push([]);
+			}
+			this.mapByChunks.push(yCollumn);
+		}
+		this.createCastlesAndRuins(this.MapOfRelief);
 	}
 
 	update(){
 		this.Buildings.forEach(function(building){
             building.update();
         });
+
+        //Код для определения выделенного мышкой объекта. Далее вокруг него рисуется GUI в GUIManager.update()
+        if(mouseIsPressed){
+        	var chx = inputManager.mouse.posInChunks.x;
+        	var chy = inputManager.mouse.posInChunks.y;
+	        //if(this.mapByChunks[chx][chy].length != 0){
+	        	//console.log('hit!');
+	        	//GUIManager.selectedObject = this.mapByChunks[chx][chy][this.mapByChunks[chx][chy].length - 1];
+	        	const numChuncksToCheck = (inputManager.mouse.interactRadius - inputManager.mouse.interactRadius%gameWorld.chunkSizeWidth)/gameWorld.chunkSizeWidth + 1;
+	        	var neighboursCells = Utilities.getNeighbours(this.mapByChunks, chx, chy, numChuncksToCheck);
+	        	console.log(numChuncksToCheck**2);
+	        	neighboursCells.push(this.mapByChunks[chx][chy]);
+	        	var neighbours = [];
+	        	for(var i = 0; i < neighboursCells.length; i++){
+	        		if(neighboursCells[i] !== undefined){
+		        		for(var j = 0; j < neighboursCells[i].length; j++){
+		        			neighbours.push(neighboursCells[i][j]);
+		        		}
+	        		}
+	        	}
+	        	//console.log(neighboursCells, neighbours);
+	        	var distances = [];
+	        	for(var k = 0; k < neighbours.length; k++){
+	        		var distance = Utilities.Dist(neighbours[k].position, inputManager.mouse.gameWorldPosition);
+	        		if(distance <= inputManager.mouse.interactRadius){
+	        			distances.push({obj: neighbours[k], dist: distance});
+	        		}
+	        	}
+
+	        	var minDist = {obj: null, dist: 100};
+	        	for(var l = 0; l < distances.length; l++){
+	        		if (distances[l].dist <= minDist.dist){
+	        			minDist.obj = distances[l].obj;
+	        			minDist.dist = distances[l].dist;
+	        		}
+	        	}
+	        	GUIManager.selectedObject = minDist.obj;
+	        	console.log(GUIManager.selectedObject, minDist, distances);
+	        //}
+    	}
 	}
 
 	draw(){
@@ -80,10 +134,11 @@ class World {
 		push();
 		translate(-gameWorld.camera.position.x + gameWorld.camera.offset.x, -gameWorld.camera.position.y + gameWorld.camera.offset.y);
 		//scale(this.camera.zoom);
+		stroke(200, 200, 100);
 		for (let cell of this.MapOfRelief) {
 			fill(cell.color);
 			beginShape();
-  			for(let vert of cell){
+  			for(let vert of cell.bounds){
   				vertex(vert[0], vert[1]);
   			}
   			endShape(CLOSE);
@@ -91,12 +146,18 @@ class World {
   		pop();
 	}
 
-	createCastlesAndRuins(delaunay){
+	createCastlesAndRuins(mapOfRelief){
 		//const tempBuildings = voronoi.circumcenters;
-		const tempBuildings = delaunay.points;
+		const tempBuildings = [];
+		for (var i = mapOfRelief.length - 1; i >= 0; i--) {
+			if(this.getTypeOfCellOfHeight(mapOfRelief[i].height) != "вода"){ //Изменить на функцию получитьМожноЛиСтроитьНаЭтомТайле()
+				tempBuildings.push(mapOfRelief[i].centroid);
+			}
+			console.log();
+		}
 		//console.log(tempBuildings);
-		for(var i = 0; i < tempBuildings.length/2; i++){
-			var building = {x: tempBuildings[i*2], y: tempBuildings[i*2+1]};
+		for(var i = 0; i < tempBuildings.length; i++){
+			var building = tempBuildings[i];
 			//console.log(i, building)
 			switch (Math.floor(random(4))) {
 				case 0:
@@ -116,6 +177,20 @@ class World {
 					break;
 			}
 		}
+	}
+
+	getCellAtPos(position){
+		return resultCell;
+	}
+
+	getTypeOfCellOfHeight(height, biome){
+		if(height >= 0.99) {/*облака, гигантские заснеженные горы*/ return "облака"} else
+		if(height > 0.9){/*mountain tops*/return "вершины гор"} else 
+		if(height > 0.75){/*mountains*/ return "горы"} else
+		if(height > 0.5){/*леса*/ return "леса"} else
+		if(height > 0.40){/*плоскогорье, низ горы*/ return "равнины"} else
+		if(height > 0){/*равнины*/ return "вода"} else
+		{/*бедрок?*/ return "выжженные земли"}
 	}
 
 	getColorOfHeightMap(height){ //height от -1 до 1
@@ -236,7 +311,7 @@ class World {
 		const relaxationPower = -1; //from 0 to 1. (-1; 1) p<0 - relax, p>0 - converge
 		for (var i = 0; i < NUM_LLOYD_RELAXATIONS; i++) {
 			console.log(i)
-        	var voronoi = d3.Delaunay.from(points).voronoi([0, 0, width, height]);
+        	var voronoi = d3.Delaunay.from(points).voronoi([0, 0, this.chunkSizeWidth*this.chunkAmountWide, this.chunkSizeHeight*this.chunkAmountHigh]);
         	for (var j = 0; j < points.length; j++) {
 	            var cell = voronoi.cellPolygon(j);
 	            //console.log('cell ', cell, j, i);
@@ -289,7 +364,7 @@ class World {
 	drawChunkBorders(){
 		push();
 		fill("lightgreen");
-		var leftPoint = [-gameWorld.camera.position.x - gameWorld.camera.offset.x, -gameWorld.camera.position.y - gameWorld.camera.offset.y];
+		var leftPoint = [-gameWorld.camera.position.x + gameWorld.camera.offset.x, -gameWorld.camera.position.y + gameWorld.camera.offset.y];
 		var x1 = leftPoint[0] % this.chunkSizeWidth;
 		for (var i = 0; i < width - width%this.chunkSizeWidth; i++) {
 			line(x1 + i*this.chunkSizeWidth, 0, x1+i*this.chunkSizeWidth, height);
@@ -297,6 +372,24 @@ class World {
 		var y1 = leftPoint[1] % this.chunkSizeHeight;
 		for (var i = 0; i < height - height%this.chunkSizeHeight; i++) {
 			line(0, y1 + i*this.chunkSizeHeight, width, y1+i*this.chunkSizeHeight); //x1+i*this.chunkSizeHeight - для интересного бага
+		}
+		pop();
+	}
+
+	drawImage(Image, position, mode){
+		push();
+		switch (mode) {
+			case "center":
+				//scale(Image.width/gameWorld.standartImageWidth);
+				//Image.resize(gameWorld.standartImageWidth, gameWorld.standartImageHeight);
+				image(Image, position.x, position.y);
+				break;
+			case "top left":
+				image(Image, position.x - Image.width/2, position.y - Image.height/2);
+				break;
+			default:
+				image(Image, position.x, position.y);
+				break;
 		}
 		pop();
 	}

@@ -2,7 +2,9 @@ class Building{
 	constructor(position, type){
 		this.position = position;
 		this.type = type;
+		//gameWorld.mapByChunks[this.position.x - this.position.x%gameWorld.chunkSizeWidth][this.position.y - this.position.y%gameWorld.chunkSizeHeight].push(this);
 		//gameWorld.Buildings.push(this);
+		gameWorld.mapByChunks[(this.position.x - this.position.x%gameWorld.chunkSizeWidth)/gameWorld.chunkSizeWidth][(this.position.y - this.position.y%gameWorld.chunkSizeHeight)/gameWorld.chunkSizeHeight].push(this);
 	}
 
 	draw(){
@@ -134,34 +136,41 @@ class TestRuins extends Building{
 
 class Ruins extends Building{
 	constructor(position){
+		super(position, "Ruins");
 		this.position = position;
 		this.colorPalette = "#994b02";
+		this.image = images.Ruins;
 	}
 
 	draw(){
-		image(images.Ruins, this.posOnScreen.x, this.posOnScreen.y);
+		//image(this.image, this.posOnScreen.x - this.image.width/2, this.posOnScreen.y - this.image.height/2);
+		gameWorld.drawImage(this.image, this.posOnScreen, "top left");
 	}
 }
 
 class Village extends Building{
 	constructor(position){
+		super(position, "Village");
 		this.position = position;
 		this.colorPalette = "#c05d00";
+		this.image = images.Village;
 	}
 
 	draw(){
-		//image(images.Village, this.posOnScreen.x, this.posOnScreen.y);
+		gameWorld.drawImage(this.image, this.posOnScreen, "top left");
 	}
 }
 
 class Castle extends Building{
 	constructor(position){
+		super(position, "Castle");
 		this.position = position;
 		this.colorPalette = "#674c45";
+		this.image = images.Castle;
 	}
 
 	draw(){
-		//image(images.Castle, this.posOnScreen.x, this.posOnScreen.y);
+		gameWorld.drawImage(this.image, this.posOnScreen, "top left");
 	}
 }
 
