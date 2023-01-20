@@ -1,7 +1,12 @@
 //import * from './buildings.js';
 // import {Delaunay} from "d3-delaunay";
+import createBuildingByName from "./buildings.js";
+import * as buildings from "./buildings.js"
+import inputManager from "./inputManager.js";
+import GUIManager from "./GUIManager.js";
+import Utilities from "./utilities.js";
 
-class World {
+export default class World {
 	constructor(){
 		this.Empires = [];
 		this.MapOfRelief = [];
@@ -17,10 +22,11 @@ class World {
 		};
 		this.seed = 2; //7060, 94717, 6831(четыре горы), 9720, 3583
 		this.mapByChunks = [];
-		this.chunkSizeWidth = 30;
-		this.chunkSizeHeight = 30;
-		this.chunkAmountWide = 100;
-		this.chunkAmountHigh = 60;
+		this.chunkSizeWidth = 30; //30
+		this.chunkSizeHeight = 30; //30
+		this.chunkAmountWide = 100; //100
+		this.chunkAmountHigh = 60; //60
+		this.CellMapByChunks = [];
 	}
 
 	changeCameraZoom(dir, mult = 1){
@@ -37,19 +43,35 @@ class World {
 		//const points = [[0, 0], [0, 1], [1, 0], [1, 1]];
 		var points = [];
 
-		gameWorld.seed = prompt("Введи сид, ;Ю.\n" + "Текущий сид: " + gameWorld.seed, Math.floor(random()*100000));
-		randomSeed(gameWorld.seed);
-		noiseSeed(gameWorld.seed);
+		this.seed = prompt("Введи сид, ;Ю.\n" + "Текущий сид: " + this.seed, Math.floor(random()*100000));
+		randomSeed(this.seed);
+		noiseSeed(this.seed);
 
 		console.log(this.chunkSizeWidth*this.chunkAmountWide)
 
-		const cellAndPointsNum = 200; //300, 100, 200 - это количество точек(клеток) на всей карте. А концентрация этих точек это cellAndPointsNum / this.chunkSizeWidth*this.chunkAmountWide. Кол-во точек/количество пикселей. сколько точек в одном пикселе. Идеальная концентрация это 0.06(6) - 200/3000
+		const cellAndPointsNum = 800; //300, 100, 200 - это количество точек(клеток) на всей карте. А концентрация этих точек это cellAndPointsNum / this.chunkSizeWidth*this.chunkAmountWide. Кол-во точек/количество пикселей. сколько точек в одном пикселе. Идеальная концентрация это 0.06(6) - 200/3000
 		for(var i = 0; i < cellAndPointsNum; i++){
 			points.push([random(this.chunkSizeWidth*this.chunkAmountWide), random(this.chunkSizeHeight*this.chunkAmountHigh)]);
 		}
 		// for (var i = 0; i < 2; i++) {
 		// 	points = this.improveRandomPoints(points);
 		// }
+
+		for(var x = 0; x < this.chunkAmountWide; x++){
+			var yCollumn = []
+			for(var y = 0; y < this.chunkAmountHigh; y++){
+				yCollumn.push([]);
+			}
+			this.mapByChunks.push(yCollumn);
+		}
+		for(var x = 0; x < this.chunkAmountWide; x++){
+			var yCollumn = []
+			for(var y = 0; y < this.chunkAmountHigh; y++){
+				yCollumn.push([]);
+			}
+			this.CellMapByChunks.push(yCollumn);
+		}
+
 		this.makeRelaxed(points);
 		const delaunay = d3.Delaunay.from(points);
 		const voronoi = delaunay.voronoi([0, 0, this.chunkSizeWidth*this.chunkAmountWide, this.chunkSizeHeight*this.chunkAmountHigh]); //960, 500
@@ -59,16 +81,40 @@ class World {
 			var cellCentroid = this.findCentroidOfPolygonArrays(cell);
 			var heightOfTheCell = noise(cellCentroid[0], cellCentroid[1])
 			var cellColor = this.getColorOfHeightMapSmoothHex(heightOfTheCell); //noise()*2 - 1
-  			this.MapOfRelief.push({bounds: cell, centroid: {x: cellCentroid[0], y: cellCentroid[1]}, height: heightOfTheCell, color: cellColor});
+
+			var readyCell = {bounds: cell, centroid: {x: cellCentroid[0], y: cellCentroid[1]}, height: heightOfTheCell, color: cellColor};
+
+  			this.MapOfRelief.push(readyCell);
+
+
+			var topLeftX = Infinity;
+			var topLeftY = -Infinity;
+			var botRightX = -Infinity;
+			var botRightY = Infinity;
+			// console.log(readyCell)
+			for(var i = 0; i < readyCell.bounds.length; i++){
+				const vert = readyCell.bounds[i];
+				topLeftX = Math.min(topLeftX, vert[0]);
+				topLeftY = Math.max(topLeftY, vert[1]);
+				botRightX = Math.max(botRightX, vert[0]);
+				botRightY = Math.min(botRightY, vert[1]);
+			}
+			// console.log(topLeftX, topLeftY, botRightX, botRightY)
+
+			topLeftX = this.getCoordInChunksX(topLeftX);
+			topLeftY = this.getCoordInChunksY(topLeftY);
+			botRightX = this.getCoordInChunksX(botRightX);
+			botRightY = this.getCoordInChunksY(botRightY);
+			// console.log(topLeftX, topLeftY, botRightX, botRightY);
+
+			for (let x = topLeftX; x < botRightX; x++) {
+				for (let y = botRightY; y < topLeftY; y++) {
+					this.CellMapByChunks[x][y].push(readyCell);
+					// console.log(this.CellMapByChunks[x][y]);
+				}
+			}
 		}
 
-		for(var x = 0; x < this.chunkAmountWide; x++){
-			var yCollumn = []
-			for(var y = 0; y < this.chunkAmountHigh; y++){
-				yCollumn.push([]);
-			}
-			this.mapByChunks.push(yCollumn);
-		}
 		this.createCastlesAndRuins(this.MapOfRelief);
 	}
 
@@ -84,9 +130,9 @@ class World {
 	        //if(this.mapByChunks[chx][chy].length != 0){
 	        	//console.log('hit!');
 	        	//GUIManager.selectedObject = this.mapByChunks[chx][chy][this.mapByChunks[chx][chy].length - 1];
-	        	const numChuncksToCheck = (inputManager.mouse.interactRadius - inputManager.mouse.interactRadius%gameWorld.chunkSizeWidth)/gameWorld.chunkSizeWidth + 1;
+	        	const numChuncksToCheck = (inputManager.mouse.interactRadius - inputManager.mouse.interactRadius%this.chunkSizeWidth)/this.chunkSizeWidth + 1;
 	        	var neighboursCells = Utilities.getNeighbours(this.mapByChunks, chx, chy, numChuncksToCheck);
-	        	console.log(numChuncksToCheck**2);
+	        	//console.log(numChuncksToCheck**2);
 	        	neighboursCells.push(this.mapByChunks[chx][chy]);
 	        	var neighbours = [];
 	        	for(var i = 0; i < neighboursCells.length; i++){
@@ -113,7 +159,7 @@ class World {
 	        		}
 	        	}
 	        	GUIManager.selectedObject = minDist.obj;
-	        	console.log(GUIManager.selectedObject, minDist, distances);
+	        	//console.log(GUIManager.selectedObject, minDist, distances);
 	        //}
     	}
 	}
@@ -131,9 +177,47 @@ class World {
 	}
 
 	drawRelief(){
+		/*var topLeftX = Math.max(this.screenToWorldCoordX(0), 0);
+		var topLeftY = Math.max(this.screenToWorldCoordY(0), 0);
+		var botRightX = Math.min(this.screenToWorldCoordX(this.camera.offset.x*2), this.chunkAmountWide*this.chunkSizeWidth);
+		var botRightY = Math.min(this.screenToWorldCoordY(this.camera.offset.y*2), this.chunkAmountHigh*this.chunkSizeHeight);
+
+		// console.log(topLeftX, topLeftY, botRightX, botRightY);
+		topLeftX = this.getCoordInChunksX(topLeftX);
+		topLeftY = this.getCoordInChunksY(topLeftY);
+		botRightX = this.getCoordInChunksX(botRightX);
+		botRightY = this.getCoordInChunksY(botRightY);
+		// console.log(topLeftX, topLeftY, botRightX, botRightY);
+		// console.log(this.CellMapByChunks)
+
+		var CellsToDraw = [];
 		push();
-		translate(-gameWorld.camera.position.x + gameWorld.camera.offset.x, -gameWorld.camera.position.y + gameWorld.camera.offset.y);
-		//scale(this.camera.zoom);
+		translate(-this.camera.position.x*this.camera.zoom + this.camera.offset.x, -this.camera.position.y*this.camera.zoom + this.camera.offset.y);
+		scale(this.camera.zoom);
+		stroke(200, 200, 100);
+		for (let x = topLeftX; x < botRightX; x++) {
+			for (let y = topLeftY; y < botRightY; y++) {
+				for (let i = 0; i < this.CellMapByChunks[x][y].length; i++) {
+					const CellToDraw = this.CellMapByChunks[x][y][i];
+					if(!(CellToDraw in CellsToDraw)){
+						CellsToDraw.push(CellToDraw);	
+					
+						fill(CellToDraw.color);
+						beginShape();
+						for(let vert of CellToDraw.bounds){
+							vertex(vert[0], vert[1]);
+						}
+						endShape(CLOSE);
+					}
+				}
+			}
+		}
+		pop(); */
+
+		
+		push();
+		translate(-this.camera.position.x*this.camera.zoom + this.camera.offset.x, -this.camera.position.y*this.camera.zoom + this.camera.offset.y);
+		scale(this.camera.zoom);
 		stroke(200, 200, 100);
 		for (let cell of this.MapOfRelief) {
 			fill(cell.color);
@@ -144,6 +228,7 @@ class World {
   			endShape(CLOSE);
   		}
   		pop();
+		
 	}
 
 	createCastlesAndRuins(mapOfRelief){
@@ -153,7 +238,7 @@ class World {
 			if(this.getTypeOfCellOfHeight(mapOfRelief[i].height) != "вода"){ //Изменить на функцию получитьМожноЛиСтроитьНаЭтомТайле()
 				tempBuildings.push(mapOfRelief[i].centroid);
 			}
-			console.log();
+			//console.log();
 		}
 		//console.log(tempBuildings);
 		for(var i = 0; i < tempBuildings.length; i++){
@@ -164,13 +249,13 @@ class World {
 					this.createBuilding("Ruins", building);
 					break;
 				case 1:
-					this.createBuilding("Village", building, TestVillage.getRandomStartPopulation());
+					this.createBuilding("Village", building, buildings.TestVillage.getRandomStartPopulation());
 					break;
 				case 2:
 					//На этом месте на карте будет пустое место для сражений, полей, лесов, озёр, гор и т.д.
 					break;
 				case 3:
-					this.createBuilding("Castle", building, TestVillage.getRandomStartPopulation());
+					this.createBuilding("Castle", building, buildings.TestVillage.getRandomStartPopulation());
 					break;
 				default:
 					//do nothing
@@ -364,33 +449,90 @@ class World {
 	drawChunkBorders(){
 		push();
 		fill("lightgreen");
-		var leftPoint = [-gameWorld.camera.position.x + gameWorld.camera.offset.x, -gameWorld.camera.position.y + gameWorld.camera.offset.y];
-		var x1 = leftPoint[0] % this.chunkSizeWidth;
-		for (var i = 0; i < width - width%this.chunkSizeWidth; i++) {
-			line(x1 + i*this.chunkSizeWidth, 0, x1+i*this.chunkSizeWidth, height);
+		// var leftPoint = [-this.camera.position.x*this.camera.zoom + this.camera.offset.x, -this.camera.position.y*this.camera.zoom + this.camera.offset.y];
+		var x1 = Math.max(-this.camera.position.x*this.camera.zoom + this.camera.offset.x, (-this.camera.position.x*this.camera.zoom + this.camera.offset.x)%(this.chunkSizeWidth*this.camera.zoom)); //leftPoint[0] % this.chunkSizeWidth
+		// var y1 = -this.camera.position.y*this.camera.zoom + this.camera.offset.y; //leftPoint[1] % this.chunkSizeHeight
+		var y1 = Math.max(-this.camera.position.y*this.camera.zoom + this.camera.offset.y, (-this.camera.position.y*this.camera.zoom + this.camera.offset.y)%(this.chunkSizeHeight*this.camera.zoom)); //leftPoint[0] % this.chunkSizeWidth
+
+
+		var chunksToDrawAmountX = (Math.max(0, this.worldToScreenCoordX(0)) - Math.min(this.worldToScreenCoordX(this.chunkAmountWide*this.chunkSizeWidth), this.camera.offset.x*2 /*width*/))/this.camera.zoom;
+		chunksToDrawAmountX = -(chunksToDrawAmountX - chunksToDrawAmountX%this.chunkSizeWidth)/this.chunkSizeWidth;
+		// console.log(chunksToDrawAmountX)
+		var chunksToDrawAmountY = (Math.max(0, this.worldToScreenCoordY(0)) - Math.min(this.worldToScreenCoordY(this.chunkAmountHigh*this.chunkSizeHeight), this.camera.offset.y*2 /*width*/))/this.camera.zoom;
+		chunksToDrawAmountY = -(chunksToDrawAmountY - chunksToDrawAmountY%this.chunkSizeHeight)/this.chunkSizeHeight;
+		
+		// console.log(Math.min((width/this.camera.zoom - (width/this.camera.zoom)%this.chunkSizeWidth)/this.chunkSizeWidth, this.chunkAmountWide), x1)
+		
+		for (var i = 0; i < chunksToDrawAmountX + 2; i++) {
+			line(x1 + i*this.chunkSizeWidth*this.camera.zoom, y1, x1+i*this.chunkSizeWidth*this.camera.zoom, y1 + this.chunkAmountHigh*this.chunkSizeHeight*this.camera.zoom);
 		}
-		var y1 = leftPoint[1] % this.chunkSizeHeight;
-		for (var i = 0; i < height - height%this.chunkSizeHeight; i++) {
-			line(0, y1 + i*this.chunkSizeHeight, width, y1+i*this.chunkSizeHeight); //x1+i*this.chunkSizeHeight - для интересного бага
+		
+		for (var i = 0; i < chunksToDrawAmountY + 2; i++) {
+			line(x1, y1 + i*this.chunkSizeHeight*this.camera.zoom, x1 + this.chunkAmountWide*this.chunkSizeWidth*this.camera.zoom, y1+i*this.chunkSizeHeight*this.camera.zoom); //x1+i*this.chunkSizeHeight - для интересного бага
 		}
 		pop();
 	}
 
-	drawImage(Image, position, mode){
+	drawImage(Image, position, scale, mode){
 		push();
 		switch (mode) {
 			case "center":
 				//scale(Image.width/gameWorld.standartImageWidth);
 				//Image.resize(gameWorld.standartImageWidth, gameWorld.standartImageHeight);
-				image(Image, position.x, position.y);
+				image(Image, position.x, position.y, Image.width*scale, Image.height*scale);
 				break;
 			case "top left":
-				image(Image, position.x - Image.width/2, position.y - Image.height/2);
+				image(Image, position.x - Image.width/2*scale, position.y - Image.height/2*scale, Image.width*scale, Image.height*scale);
 				break;
 			default:
-				image(Image, position.x, position.y);
+				image(Image, position.x, position.y, Image.width*scale, Image.height*scale);
 				break;
 		}
 		pop();
+	}
+
+	worldToScreenCoords(pos){
+		res = {x: 0, y: 0};
+		
+		res.x = (pos.x - this.camera.position.x)*this.camera.zoom + this.camera.offset.x;
+		res.y = (pos.y - this.camera.position.y)*this.camera.zoom + this.camera.offset.y;
+
+		return res;
+	}
+
+	screenToWorldCoords(pos){
+		res = {x: 0, y: 0};
+
+		res.x = (pos.x - this.camera.offset.x)/this.camera.zoom + this.camera.position.x;
+		res.y = (pos.y - this.camera.offset.y)/this.camera.zoom + this.camera.position.y;
+
+		return res;
+	}
+
+	worldToScreenCoordX(x){
+		return (x - this.camera.position.x)*this.camera.zoom + this.camera.offset.x;
+	}
+	worldToScreenCoordY(y){
+		return (y - this.camera.position.y)*this.camera.zoom + this.camera.offset.y;
+	}
+
+	screenToWorldCoordX(x){
+		return (x - this.camera.offset.x)/this.camera.zoom + this.camera.position.x;
+	}
+	screenToWorldCoordY(y){
+		return (y - this.camera.offset.y)/this.camera.zoom + this.camera.position.y;
+	}
+
+	getPosInChunks(pos){
+		return {x: (pos.x-pos.x%this.chunkSizeWidth) / this.chunkSizeWidth, y: (pos.y - pos.y%this.chunkSizeHeight) / this.chunkSizeHeight};
+	}
+
+	getCoordInChunksX(x){
+		// return (x-x%this.chunkSizeWidth) / this.chunkSizeWidth;
+		return Math.trunc(x/this.chunkSizeWidth);
+	}
+	getCoordInChunksY(y){
+		// return (y-y%this.chunkSizeHeight) / this.chunkSizeHeight;
+		return Math.trunc(y/this.chunkSizeHeight);
 	}
 }

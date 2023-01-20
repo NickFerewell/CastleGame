@@ -364,7 +364,7 @@ class Utils{
 
 
 //Из Tools,Utilities,Instruments lib. Надо постоянно обновлять этот файл, чтобы он совпадал с тем.
-class Utilities{
+export default class Utilities{
     //Всякие константы:
     static Pi = 3.1415926535897932384;
     static Tau = 6.2831853071795864769;

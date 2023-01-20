@@ -1,5 +1,5 @@
 //Здесь находится всё то, чем игрок может изменить ход вещей
-class inputManager{
+export default class inputManager{
 	static keyboard = { //undefined - нажата любая клавиша кроме зарегистрированных
     }
 
@@ -26,21 +26,25 @@ class inputManager{
     }
     static update(){
         if(mouseIsPressed || true){
-            inputManager.mouse.gameWorldPosition.x = mouseX + gameWorld.camera.position.x - gameWorld.camera.offset.x;
-            inputManager.mouse.gameWorldPosition.y = mouseY + gameWorld.camera.position.y - gameWorld.camera.offset.y;
-            inputManager.mouse.chunkPosition.x = inputManager.mouse.gameWorldPosition.x - inputManager.mouse.gameWorldPosition.x%gameWorld.chunkSizeWidth;
-            inputManager.mouse.chunkPosition.y = inputManager.mouse.gameWorldPosition.y - inputManager.mouse.gameWorldPosition.y%gameWorld.chunkSizeHeight;
-            inputManager.mouse.posInChunks.x = (inputManager.mouse.gameWorldPosition.x - inputManager.mouse.gameWorldPosition.x%gameWorld.chunkSizeWidth) / gameWorld.chunkSizeWidth;
-            inputManager.mouse.posInChunks.y = (inputManager.mouse.gameWorldPosition.y - inputManager.mouse.gameWorldPosition.y%gameWorld.chunkSizeHeight) / gameWorld.chunkSizeHeight;
-            //circle(inputManager.mouse.chunkPosition.x, inputManager.mouse.chunkPosition.y, 20);
-            inputManager.mouse.chunkPosOnScreen.x = inputManager.mouse.chunkPosition.x - gameWorld.camera.position.x + gameWorld.camera.offset.x;
-            inputManager.mouse.chunkPosOnScreen.y = inputManager.mouse.chunkPosition.y - gameWorld.camera.position.y + gameWorld.camera.offset.y;
-            //rect(inputManager.mouse.chunkPosOnScreen.x, inputManager.mouse.chunkPosOnScreen.y, 20, 20);
-            //circle(inputManager.mouse.chunkPosition.x - gameWorld.camera.position.x + gameWorld.camera.offset.x + gameWorld.chunkSizeWidth/2, inputManager.mouse.chunkPosition.y - gameWorld.camera.position.y + gameWorld.camera.offset.y + gameWorld.chunkSizeHeight/2, 20)
-            //circle((mx - mx%gameWorld.chunkSizeWidth) - gameWorld.camera.position.x + gameWorld.camera.offset.x + gameWorld.chunkSizeWidth/2, (my - my%gameWorld.chunkSizeHeight) - gameWorld.camera.position.y + gameWorld.camera.offset.y + gameWorld.chunkSizeHeight/2, 20)
+            inputManager.updateMouse();
         }
 
         //circle(mouseX, mouseY, 20)
+    }
+
+    static updateMouse(){
+        inputManager.mouse.gameWorldPosition.x = (mouseX - gameWorld.camera.offset.x)/gameWorld.camera.zoom + gameWorld.camera.position.x;
+        inputManager.mouse.gameWorldPosition.y = (mouseY - gameWorld.camera.offset.y)/gameWorld.camera.zoom + gameWorld.camera.position.y;
+        inputManager.mouse.chunkPosition.x = inputManager.mouse.gameWorldPosition.x - inputManager.mouse.gameWorldPosition.x%gameWorld.chunkSizeWidth;
+        inputManager.mouse.chunkPosition.y = inputManager.mouse.gameWorldPosition.y - inputManager.mouse.gameWorldPosition.y%gameWorld.chunkSizeHeight;
+        inputManager.mouse.posInChunks.x = (inputManager.mouse.gameWorldPosition.x - inputManager.mouse.gameWorldPosition.x%gameWorld.chunkSizeWidth) / gameWorld.chunkSizeWidth;
+        inputManager.mouse.posInChunks.y = (inputManager.mouse.gameWorldPosition.y - inputManager.mouse.gameWorldPosition.y%gameWorld.chunkSizeHeight) / gameWorld.chunkSizeHeight;
+        //circle(inputManager.mouse.chunkPosition.x, inputManager.mouse.chunkPosition.y, 20);
+        inputManager.mouse.chunkPosOnScreen.x = (inputManager.mouse.chunkPosition.x - gameWorld.camera.position.x)*gameWorld.camera.zoom + gameWorld.camera.offset.x;
+        inputManager.mouse.chunkPosOnScreen.y = (inputManager.mouse.chunkPosition.y - gameWorld.camera.position.y)*gameWorld.camera.zoom + gameWorld.camera.offset.y;
+        //rect(inputManager.mouse.chunkPosOnScreen.x, inputManager.mouse.chunkPosOnScreen.y, 20, 20);
+        //circle(inputManager.mouse.chunkPosition.x - gameWorld.camera.position.x + gameWorld.camera.offset.x + gameWorld.chunkSizeWidth/2, inputManager.mouse.chunkPosition.y - gameWorld.camera.position.y + gameWorld.camera.offset.y + gameWorld.chunkSizeHeight/2, 20)
+        //circle((mx - mx%gameWorld.chunkSizeWidth) - gameWorld.camera.position.x + gameWorld.camera.offset.x + gameWorld.chunkSizeWidth/2, (my - my%gameWorld.chunkSizeHeight) - gameWorld.camera.position.y + gameWorld.camera.offset.y + gameWorld.chunkSizeHeight/2, 20)
     }
 
     static draw(){
@@ -48,13 +52,29 @@ class inputManager{
             push();
             fill(90, 120, 90, 60);
             stroke(100, 100, 230);
-            rect(inputManager.mouse.chunkPosOnScreen.x, inputManager.mouse.chunkPosOnScreen.y, gameWorld.chunkSizeWidth, gameWorld.chunkSizeHeight);
+            rect(inputManager.mouse.chunkPosOnScreen.x, inputManager.mouse.chunkPosOnScreen.y, gameWorld.chunkSizeWidth*gameWorld.camera.zoom, gameWorld.chunkSizeHeight*gameWorld.camera.zoom);
             pop();
         }
         push();
         fill(200, 200, 100);
         circle(mouseX, mouseY, 20);
         pop();
+    }
+
+    static getPressed(key){
+
+    }
+
+    static getPushed(key){
+
+    }
+
+    static getRaised(key){
+
+    }
+
+    static getClicked(key){
+
     }
 }
 
@@ -70,7 +90,7 @@ function mouseWheel(event){
     // }
 
 
-    dir = event.delta/Math.abs(event.delta);
+    let dir = event.delta/Math.abs(event.delta);
     gameWorld.changeCameraZoom(dir);
 
 
@@ -79,6 +99,7 @@ function mouseWheel(event){
 
     return false;
 }
+window.mouseWheel = mouseWheel;
 
 function mouseDragged(){
     if(mouseIsPressed){
@@ -86,16 +107,18 @@ function mouseDragged(){
     // mapOffsetY += movedY;
     // cameraRect.x -= movedX / (width / cameraRect.w);
     // cameraRect.y -= movedY / (height / cameraRect.h);
-    gameWorld.camera.position.x -= movedX;
-    gameWorld.camera.position.y -= movedY;
+    gameWorld.camera.position.x -= movedX / gameWorld.camera.zoom;
+    gameWorld.camera.position.y -= movedY / gameWorld.camera.zoom;
     // render();
     }
     // console.log(mapOffsetX);
 }
+window.mouseDragged = mouseDragged;
 
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
 }
+window.windowResized = windowResized;
 
 function keyPressed(){
     inputManager.keyboard[inputManager.bindings[keyCode]] = true;
@@ -104,11 +127,13 @@ function keyPressed(){
         return false;
     }
 }
+window.keyPressed = keyPressed;
 
 function keyReleased(){
     inputManager.keyboard[inputManager.bindings[keyCode]] = false;
     return false;
 }
+window.keyReleased = keyReleased;
 
 // function mouseClicked(event) {
 //   console.log(event);

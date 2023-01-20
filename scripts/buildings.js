@@ -1,4 +1,7 @@
-class Building{
+import Utilities from "./utilities.js";
+import Config from "./config.js";
+
+export class Building{
 	constructor(position, type){
 		this.position = position;
 		this.type = type;
@@ -16,7 +19,7 @@ class Building{
 	}
 }
 
-class TestVillage extends Building{
+export class TestVillage extends Building{
 	constructor(position, startPopulation){
 		super(position, "Village");
 		this.position = position;
@@ -49,7 +52,7 @@ class TestVillage extends Building{
 	}
 }
 	
-class TestCastle extends Building{
+export class TestCastle extends Building{
 	constructor(position, startPopulation){
 		super(position, "Castle");
 		this.position = position;
@@ -117,7 +120,7 @@ class TestCastle extends Building{
 	}
 }
 
-class TestRuins extends Building{
+export class TestRuins extends Building{
 	constructor(position){
 		super();
 		this.variant = 1 || 0; //Сделать рандомным, надо где-то 4 варианта разрушенных замков, портов, ферм, домиков. Отдельной постройкой сделать сожжённые леса. Они не восстанавливаются, их можно только расчистить.
@@ -134,7 +137,7 @@ class TestRuins extends Building{
 	}
 }
 
-class Ruins extends Building{
+export class Ruins extends Building{
 	constructor(position){
 		super(position, "Ruins");
 		this.position = position;
@@ -144,11 +147,11 @@ class Ruins extends Building{
 
 	draw(){
 		//image(this.image, this.posOnScreen.x - this.image.width/2, this.posOnScreen.y - this.image.height/2);
-		gameWorld.drawImage(this.image, this.posOnScreen, "top left");
+		gameWorld.drawImage(this.image, this.posOnScreen, gameWorld.camera.zoom, "top left");
 	}
 }
 
-class Village extends Building{
+export class Village extends Building{
 	constructor(position){
 		super(position, "Village");
 		this.position = position;
@@ -157,11 +160,11 @@ class Village extends Building{
 	}
 
 	draw(){
-		gameWorld.drawImage(this.image, this.posOnScreen, "top left");
+		gameWorld.drawImage(this.image, this.posOnScreen, gameWorld.camera.zoom, "top left");
 	}
 }
 
-class Castle extends Building{
+export class Castle extends Building{
 	constructor(position){
 		super(position, "Castle");
 		this.position = position;
@@ -170,7 +173,7 @@ class Castle extends Building{
 	}
 
 	draw(){
-		gameWorld.drawImage(this.image, this.posOnScreen, "top left");
+		gameWorld.drawImage(this.image, this.posOnScreen, gameWorld.camera.zoom, "top left");
 	}
 }
 
@@ -227,8 +230,8 @@ function createBuildingByNameEval(name,...a) { //createBuilding, uildingFactory
 }
 */
 
-function createBuildingByName(name,...a) { //createBuilding, buildingFactory //Дополнительные аргументы для каждого типа постройки разные соответственно её типу, поэтому, например, у руин не надо указывать начальную популяцию - её там нет.
-	this.buildings = {
+export default function createBuildingByName(name,...a) { //createBuilding, buildingFactory //Дополнительные аргументы для каждого типа постройки разные соответственно её типу, поэтому, например, у руин не надо указывать начальную популяцию - её там нет.
+	var buildings = {
 		__default: Building,
 		Village,
 		Castle,
@@ -237,7 +240,7 @@ function createBuildingByName(name,...a) { //createBuilding, buildingFactory //�
 		TestCastle,
 		TestRuins,
 	};
-    var b = this.buildings[name] || this.buildings.__default;
+    var b = buildings[name] || buildings.__default;
     return new b(...a);
 }
 //export {buildingFactory, Village, Building};

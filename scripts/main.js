@@ -4,6 +4,11 @@
 // var growSpeed = 1; //0.75, 1
 // var growUnit = 1;
 
+import World from "./world.js";
+import inputManager from "./inputManager.js";
+import GUIManager from "./GUIManager.js";
+import Config from "./config.js";
+
 const FPS = 60;
 
 var gameWorld;
@@ -18,6 +23,8 @@ function preload(){
     // Config.imagePaths.forEach(function(path, name){
     //     images[name] = loadImage(path);
     // })
+    window.images = images;
+    window.DEBUG_MODE = DEBUG_MODE;
     Object.keys(Config.imagePaths).forEach(function(nameOfImage) {
         images[nameOfImage] = loadImage(Config.imagePaths[nameOfImage]/* || Config.imagePaths.Default*/);
     });
@@ -36,6 +43,7 @@ function setup(){
     // console.log(castles);
 
     gameWorld = new World();
+    window.gameWorld = gameWorld;
     gameWorld.start();
     inputManager.start();
     GUIManager.start();
@@ -56,7 +64,10 @@ function draw(){
     inputManager.update();
     GUIManager.update();
 
+    //world group(/layer)
     gameWorld.draw();
+
+    //screen drawing group(?)
     inputManager.draw();
     GUIManager.draw();
 }
@@ -73,3 +84,7 @@ function generateCastles(num){
     return castles;
 }
 */
+
+window.preload = preload;
+window.setup = setup;
+window.draw = draw;
